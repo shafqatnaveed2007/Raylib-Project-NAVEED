@@ -317,7 +317,7 @@ int main(void)
         Vector2 boyorigin = {boywidth / 2.0, boyheight / 2.0};
         DrawTexturePro(boyimg, boysource, boydest, boyorigin, 0.0f, WHITE);
 
-        // drawing bow rotated towards mouse pointer
+        // drawing bow
         float bowwidth = 240.0f;
         float bowheight = 240.0f;
         Rectangle bowsource = {0.0f, 0.0f, (float)bowimage.width, (float)bowimage.height};
@@ -325,14 +325,10 @@ int main(void)
         Vector2 boworg = {bowwidth / 2.0f, bowheight / 2.0f};
         DrawTexturePro(bowimage, bowsource, bowdest, boworg, aimangle * RAD2DEG, WHITE);
 
-        // Calculate coordinates for bow string top and bottom
+        // drawing bow string
         Vector2 bowstringbottom = Vector2Add(arrowpivot, Vector2Rotate((Vector2){0.0f, -95.0f}, aimangle));
         Vector2 bowstringtop = Vector2Add(arrowpivot, Vector2Rotate((Vector2){0.0f, 95.0f}, aimangle));
-
-        // Calculate string pull position based on charged time distance
         Vector2 pullpoint = Vector2Subtract(arrowpivot, Vector2Scale(aimdirection, pulldistance));
-
-        // drawing bow string
         DrawLineEx(bowstringbottom, pullpoint, 3.5f, LIGHTGRAY);
         DrawLineEx(bowstringtop, pullpoint, 3.5f, LIGHTGRAY);
 
@@ -344,6 +340,18 @@ int main(void)
             Vector2 arroworigin = {110.0f / 2.0f, 45.0f / 2.0f};
             DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, aimangle * RAD2DEG, WHITE);
         }
+        // drawing arrow in air
+        for (int i = 0; i < MAX_ARROWS; i++)
+        {
+            if (arrows[i].active == true)
+            {
+                float arrowangle = atan2f(arrows[i].velocity.y, arrows[i].velocity.x);
+                Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
+                Rectangle arrowdest = {arrows[i].position.x, arrows[i].position.y, 110.0f, 45.0f};
+                Vector2 arroworigin = {110.0f / 2.0f, 45.0f / 2.0f};
+                DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, arrowangle * RAD2DEG, WHITE);
+            }
+        }
 
         // drawing the balloons
         for (int i = 0; i < MAX_BALLOONS; i++)
@@ -352,19 +360,6 @@ int main(void)
             {
                 Texture2D balloontexture = balloons[i].isgold ? specialballoon : normalballoons[balloons[i].textureindex];
                 DrawTextureV(balloontexture, (Vector2){balloons[i].position.x - (balloontexture.width / 2.0f), balloons[i].position.y - (balloontexture.height / 2.0f)}, WHITE);
-            }
-        }
-
-        // drawing arrows in air
-        for (int i = 0; i < MAX_ARROWS; i++)
-        {
-            if (arrows[i].active)
-            {
-                float arrowangle = atan2f(arrows[i].velocity.y, arrows[i].velocity.x);
-                Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
-                Rectangle arrowdest = {arrows[i].position.x, arrows[i].position.y, 110.0f, 45.0f};
-                Vector2 arroworigin = {110.0f / 2.0f, 45.0f / 2.0f};
-                DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, arrowangle * RAD2DEG, WHITE);
             }
         }
 
@@ -405,6 +400,7 @@ int main(void)
 
         EndDrawing();
     }
+
     // unloading all textures/drawings
     UnloadTexture(background);
     for (int i = 0; i < NORMAL_BALLOONS_NUM; i++)
@@ -417,14 +413,13 @@ int main(void)
     UnloadTexture(bowimage);
     UnloadTexture(arrowimage);
     UnloadFont(customfont);
-
     // unloading all audio
     UnloadSound(shootsound);
     UnloadSound(popsound);
     UnloadMusicStream(gamebgmusic);
     UnloadSound(gameoversound);
-    CloseAudioDevice();
 
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
