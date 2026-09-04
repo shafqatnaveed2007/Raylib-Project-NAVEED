@@ -1,0 +1,353 @@
+#include "raylib.h"
+#include "raymath.h"
+#include <stdio.h>
+#include <math.h>
+#include <stdbool.h>
+
+#define WIDTH 1600
+#define HEIGHT 800
+#define NORMALBALLONSNUM 4
+#define SPAWNHOLES 5
+#define MAXBALLOONS 10
+
+typedef struct
+{
+    Vector2 position;
+    Vector2 velocity;
+    float radius;
+    bool active;
+} Arrow;
+
+typedef struct
+{
+    Vector2 position;
+    float radius;
+    float speed;
+    bool active;
+    bool gold;
+    int index;
+} Balloon;
+
+int main(void)
+
+{
+    InitWindow(WIDTH, HEIGHT, "HIT 'EM ALL");
+    InitAudioDevice();
+    SetTargetFPS(60);
+
+    Music bgmusic = LoadMusicStream("assets/audio/Game Window.mp3");
+    Sound shootsound = LoadSound("assets/audio/Gun Shooting.ogg");
+    Sound popsound = LoadSound("assets/audio/Balloon Pop.mp3");
+    Sound gameoversound = LoadSound("assets/audio/Game Over.mp3");
+
+    PlayMusicStream(bgmusic);
+
+    Texture2D background = LoadTexture("assets/sprites/Gamescreen.png");
+    Texture2D gameovertexture = LoadTexture("assets/sprites/gameover.png");
+    Texture2D bowimage = LoadTexture("assets/sprites/bow.png");
+    Texture2D arrowimage = LoadTexture("assets/sprites/arrow.png");
+    Texture2D specialballoon = LoadTexture("assets/sprites/specialballoon.png");
+
+    Texture2D normalballoons[NORMALBALLONSNUM];
+    for (int i = 0; i < NORMALBALLONSNUM; i++)
+    {
+        normalballoons[i] = LoadTexture(TextFormat("assets/sprites/normalballoon%d.png", i + 1));
+    }
+
+    Font customfont = LoadFont("assets/fonts/Carnival Font.ttf");
+
+    // spawnhole init
+    Vector2 spawnholes[SPAWNHOLES];
+    for (int i = 0; i < SPAWNHOLES; i++)
+    {
+        spawnholes[i] = (Vector2){1000.0f + i * 130.0f, HEIGHT + 50.0f};
+    }
+
+    // arrow init
+    Arrow arrow = {0};
+
+    // balloon state tracking
+    Balloon balloons[MAXBALLOONS] = {0};
+    for (int i = 0; i < MAXBALLOONS; i++)
+    {
+        balloons[i].active = false;
+    }
+
+    // game variables init
+    int score = 0;
+    int highestscore = 0;
+    bool gameover = false;
+    int arrowsleft = 10;
+    float gravity = 1000.0f;
+    float currentspawntimer = 0.0f;
+    float spawninterval = 2.0f;
+    float pulldistance = 0.0f;
+
+    // reading highscore from existing file
+    FILE *highestscorefile = fopen("highestscore.txt", "r");
+    if (highestscorefile != NULL)
+    {
+        fscanf(highestscorefile, "%d", &highestscore);
+        fclose(highestscorefile);
+    }
+
+    while (!WindowShouldClose())
+    {
+        float dt = GetFrameTime();
+        UpdateMusicStream(bgmusic);
+
+        // aiming, pulling back and shooting of arrow (arrow and bow can rotate)
+        Vector2 mouseposition = GetMousePosition();
+        Vector2 arrowpivot = {260.0f, 630.0f};
+        float aimangle = 0.0f;
+        Vector2 aimdirection = {1.0f, 0.0f};
+
+        float maxpulldistance = 120.0f;
+        float minarrowspeed = 500.0f;
+        float maxarrowspeed = 2500.0f;
+        float pullspeed = 100.0f;
+
+        if (arrowsleft > 0 && gameover == false)
+        {
+            float mousepointerangle = atan2f(mouseposition.y - arrowpivot.y, mouseposition.x - arrowpivot.x);
+            if (mousepointerangle > PI / 4.0)
+            {
+                aimangle = PI / 4.0;
+            }
+            else if (mousepointerangle < -PI / 4.0)
+            {
+                aimangle = -PI / 4.0;
+            }
+            else
+            {
+                aimangle = mousepointerangle;
+            }
+            aimdirection = (Vector2){cosf(aimangle), sinf(aimangle)};
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && arrow.active == false)
+            {
+                pulldistance += pullspeed * dt;
+                if (pulldistance > maxpulldistance)
+                {
+                    pulldistance = maxpulldistance;
+                }
+            }
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && arrow.active == false)
+            {
+                float pullratio = pulldistance / maxpulldistance;
+                float arrowspeed = minarrowspeed + pullratio * (maxarrowspeed - minarrowspeed);
+
+                arrow.position = arrowpivot;
+                arrow.velocity = Vector2Scale(aimdirection, arrowspeed);
+                arrow.radius = 17.0f;
+                arrow.active = true;
+                arrowsleft--;
+                PlaySound(shootsound);
+                pulldistance = 0.0f;
+            }
+        }
+
+        // projectile formula for arrow in air
+        if (arrow.active == true)
+        {
+            arrow.velocity.y += dt * gravity;
+            arrow.position = Vector2Add(arrow.position, Vector2Scale(arrow.velocity, dt));
+            if (arrow.position.x > WIDTH + 50 || arrow.position.y > HEIGHT + 50)
+            {
+                arrow.active = false;
+            }
+        }
+
+        // spawning of balloons
+        float balloonradius = (float)(normalballoons[0].width) * 0.5f;
+        if (gameover == false)
+        {
+            currentspawntimer += dt;
+            if (currentspawntimer >= spawninterval)
+            {
+                currentspawntimer = 0.0f;
+                for (int i = 0; i < MAXBALLOONS; i++)
+                {
+                    if (balloons[i].active == false)
+                    {
+                        balloons[i].position = spawnholes[GetRandomValue(0, 4)];
+                        balloons[i].speed = 150.0f;
+                        balloons[i].active = true;
+                        balloons[i].radius = balloonradius;
+                        balloons[i].gold = (GetRandomValue(1, 10) <= 2);
+                        balloons[i].index = GetRandomValue(0, 3);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // floating of balloons and collision mech of balloon with arrow
+        for (int i = 0; i < MAXBALLOONS; i++)
+        {
+            if (balloons[i].active == false)
+                continue;
+            balloons[i].position.y -= dt * balloons[i].speed;
+            if (balloons[i].position.y < -100.0f)
+            {
+                balloons[i].active = false;
+            }
+
+            if (arrow.active == true && CheckCollisionCircles(arrow.position, arrow.radius, balloons[i].position, balloons[i].radius) == true)
+            {
+                arrow.active = false;
+                balloons[i].active = false;
+                if (balloons[i].gold == true)
+                {
+                    arrowsleft += 2;
+                    score += 10;
+                }
+                else
+                {
+                    score += 20;
+                }
+                PlaySound(popsound);
+            }
+        }
+
+        // game over and comparing score with highscore
+        if (arrowsleft == 0 && arrow.active == false && gameover == false)
+        {
+            gameover = true;
+            StopMusicStream(bgmusic);
+            PlaySound(gameoversound);
+
+            if (score > highestscore)
+            {
+                highestscore = score;
+                FILE *highestscorefile = fopen("highestscore.txt", "w");
+                if (highestscorefile != NULL)
+                {
+                    fprintf(highestscorefile, "%d", highestscore);
+                    fclose(highestscorefile);
+                }
+            }
+        }
+
+        // restart of game
+        if (gameover == true && IsKeyPressed(KEY_R) == true)
+        {
+            gameover = false;
+            arrowsleft = 10;
+            score = 0;
+            currentspawntimer = 0.0f;
+
+            arrow.active = false;
+            for (int i = 0; i < MAXBALLOONS; i++)
+            {
+                balloons[i].active = false;
+            }
+            StopSound(gameoversound);
+            PlayMusicStream(bgmusic);
+        }
+
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        Rectangle bgsource = {0.0f, 0.0f, (float)background.width, (float)background.height};
+        Rectangle bgdest = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT};
+        DrawTexturePro(background, bgsource, bgdest, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+
+        // drawing bow
+        float bowwidth = 240.0f;
+        float bowheight = 240.0f;
+        Rectangle bowsource = {0.0f, 0.0f, (float)bowimage.width, (float)bowimage.height};
+        Rectangle bowdest = {arrowpivot.x, arrowpivot.y, bowwidth, bowheight};
+        Vector2 boworigin = {bowwidth / 2.0f, bowheight / 2.0f};
+        DrawTexturePro(bowimage, bowsource, bowdest, boworigin, aimangle * RAD2DEG, WHITE);
+
+        // drawing bow string
+        Vector2 bowstringtop = Vector2Add(arrowpivot, Vector2Rotate((Vector2){0.0, 95.0f}, aimangle));
+        Vector2 bowstringbottom = Vector2Add(arrowpivot, Vector2Rotate((Vector2){0.0f, -95.0f}, aimangle));
+        Vector2 pullpoint = Vector2Subtract(arrowpivot, Vector2Scale(aimdirection, pulldistance));
+        DrawLineEx(bowstringbottom, pullpoint, 3.5f, LIGHTGRAY);
+        DrawLineEx(bowstringtop, pullpoint, 3.5f, LIGHTGRAY);
+
+        // drawing arrow in air OR at bow
+        float arrowwidth = 110.0f;
+        float arrowheight = 45.0f;
+        if (gameover == false && arrow.active == false && arrowsleft > 0)
+        {
+
+            Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
+            Rectangle arrowdest = {pullpoint.x, pullpoint.y, arrowwidth, arrowheight};
+            Vector2 arroworigin = {arrowwidth / 2.0f, arrowheight / 2.0f};
+            DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, aimangle * RAD2DEG, WHITE);
+        }
+        else if (gameover == false && arrow.active == true)
+        {
+            float arrowangle = atan2f(arrow.velocity.y, arrow.velocity.x);
+            Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
+            Rectangle arrowdest = {arrow.position.x, arrow.position.y, arrowwidth, arrowheight};
+            Vector2 arroworigin = {arrowwidth / 2.0f, arrowheight / 2.0f};
+            DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, arrowangle * RAD2DEG, WHITE);
+        }
+
+        // drawing balloons (special or normal)
+        for (int i = 0; i < MAXBALLOONS; i++)
+        {
+            if (balloons[i].active == true)
+            {
+                if (balloons[i].gold == true)
+                {
+                    DrawTextureV(specialballoon, (Vector2){balloons[i].position.x - specialballoon.width / 2.0f, balloons[i].position.y - specialballoon.height / 2.0f}, WHITE);
+                }
+                else
+                {
+                    DrawTextureV(normalballoons[balloons[i].index], (Vector2){balloons[i].position.x - normalballoons[balloons[i].index].width / 2.0f, balloons[i].position.y - normalballoons[balloons[i].index].height / 2.0f}, WHITE);
+                }
+            }
+        }
+
+        DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){32, 23}, 42, 2, BLACK);
+        DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){30, 25}, 42, 2, WHITE);
+        DrawTextEx(customfont, TextFormat("ARROWS: %d", arrowsleft), (Vector2){32, 73}, 42, 2, BLACK);
+        DrawTextEx(customfont, TextFormat("ARROWS: %d", arrowsleft), (Vector2){30, 75}, 42, 2, GOLD);
+
+        if (gameover == true)
+        {
+            float gameoverwidth = (float)gameovertexture.width * 1.8f;
+            float gameoverheight = (float)gameovertexture.height * 1.8f;
+            Rectangle gameoversource = {0.0f, 0.0f, (float)gameovertexture.width, (float)gameovertexture.height};
+            Rectangle gameoverdest = {800.0f, 300.0f, gameoverwidth, gameoverheight};
+            Vector2 gameoverorigin = {gameoverwidth / 2.0, gameoverheight / 2.0};
+            DrawTexturePro(gameovertexture, gameoversource, gameoverdest, gameoverorigin, 0.0f, WHITE);
+
+            const char *restarttext = "PRESS R TO RESTART";
+            DrawTextEx(customfont, restarttext, (Vector2){600.0f, 500.0f}, 48.0f, 2, BLACK);
+            DrawTextEx(customfont, restarttext, (Vector2){598.0f, 498.0f}, 48.0f, 2, RAYWHITE);
+
+            const char *scoretext = TextFormat("YOUR SCORE: %d", score);
+            DrawTextEx(customfont, scoretext, (Vector2){600.0f, 600.0f}, 48.0f, 2, BLACK);
+            DrawTextEx(customfont, scoretext, (Vector2){598.0f, 598.0f}, 48.0f, 2, RAYWHITE);
+
+            const char *highscoretext = TextFormat("HIGHEST SCORE: %d", highestscore);
+            DrawTextEx(customfont, highscoretext, (Vector2){600.0f, 650.0f}, 48.0f, 2, BLACK);
+            DrawTextEx(customfont, highscoretext, (Vector2){598.0f, 648.0f}, 48.0f, 2, RAYWHITE);
+        }
+        EndDrawing();
+    }
+
+    UnloadTexture(background);
+    for (int i = 0; i < NORMALBALLONSNUM; i++)
+    {
+        UnloadTexture(normalballoons[i]);
+    }
+    UnloadTexture(specialballoon);
+    UnloadTexture(gameovertexture);
+    UnloadTexture(bowimage);
+    UnloadTexture(arrowimage);
+    UnloadFont(customfont);
+    UnloadSound(shootsound);
+    UnloadSound(popsound);
+    UnloadMusicStream(bgmusic);
+    UnloadSound(gameoversound);
+    CloseAudioDevice();
+    CloseWindow();
+    return 0;
+}

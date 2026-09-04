@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <stdio.h>
+#include <stdbool.h>
 #include <math.h>
 
 #define WIDTH 1600
@@ -33,7 +34,7 @@ int main(void)
     InitAudioDevice();
     SetTargetFPS(60);
 
-    Music gamebgmusic = LoadMusicStream("assets/audio/Carnival Music (Game Window).mp3");
+    Music gamebgmusic = LoadMusicStream("assets/audio/Game Window.mp3");
     PlayMusicStream(gamebgmusic);
     Sound shootsound = LoadSound("assets/audio/Gun shooting.ogg");
     Sound popsound = LoadSound("assets/audio/Balloon Pop.mp3");
@@ -43,8 +44,15 @@ int main(void)
     Texture2D gameovertexture = LoadTexture("assets/sprites/gameover.png");
     Texture2D bowimage = LoadTexture("assets/sprites/bow.png");
     Texture2D arrowimage = LoadTexture("assets/sprites/arrow.png");
+    Texture2D normalballoons[NORMAL_BALLOONS_NUM];
+    for (int i = 0; i < NORMAL_BALLOONS_NUM; i++)
+    {
+        normalballoons[i] = LoadTexture(TextFormat("assets/sprites/normalballoon%d.png", i + 1));
+    }
+    Texture2D specialballoon = LoadTexture("assets/sprites/specialballoon.png");
 
     Font customfont = LoadFont("assets/fonts/Carnival Font.ttf");
+
     // spawn hole setup for balloons
     Vector2 spawnholes[SPAWNHOLES];
     for (int i = 0; i < SPAWNHOLES; i++)
@@ -53,12 +61,7 @@ int main(void)
     }
 
     // loading balloons and initializing
-    Texture2D normalballoons[NORMAL_BALLOONS_NUM];
-    for (int i = 0; i < NORMAL_BALLOONS_NUM; i++)
-    {
-        normalballoons[i] = LoadTexture(TextFormat("assets/sprites/normalballoon%d.png", i + 1));
-    }
-    Texture2D specialballoon = LoadTexture("assets/sprites/specialballoon.png");
+
     Balloon balloons[MAX_BALLOONS] = {0};
     for (int i = 0; i < MAX_BALLOONS; i++)
     {
@@ -286,10 +289,8 @@ int main(void)
             }
         }
 
-        // score and ammo display
-        DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){32, 27}, 42, 2, BLACK);
+        // score and arrows display
         DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){30, 25}, 42, 2, WHITE);
-        DrawTextEx(customfont, TextFormat("ARROWS: %d", arrowsleft), (Vector2){32, 77}, 42, 2, BLACK);
         DrawTextEx(customfont, TextFormat("ARROWS: %d", arrowsleft), (Vector2){30, 75}, 42, 2, GOLD);
 
         // game over and final score display
