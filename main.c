@@ -1,20 +1,14 @@
-// all header files
 #include "raylib.h"
 #include "raymath.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
 
-// all macros needed
 #define WIDTH 1600
 #define HEIGHT 800
 #define MAX_BALLOONS 10
-#define MAX_ARROWS 1
 #define MAX_SPAWNHOLES 5
 #define NORMAL_BALLOONS_NUM 4
 
-// balloon structure
 typedef struct
 {
     Vector2 position;
@@ -25,7 +19,6 @@ typedef struct
     int textureindex;
 } Balloon;
 
-// arrow structure
 typedef struct
 {
     Vector2 position;
@@ -34,18 +27,17 @@ typedef struct
     bool active;
 } Arrow;
 
-// balloon spawning function
 void SpawnBalloon(Balloon *b, float balloonradius, Vector2 spawnholes[])
 {
     int holeindex = GetRandomValue(0, MAX_SPAWNHOLES - 1);
     b->position = spawnholes[holeindex];
-    b->speed = (float)160;
+    b->speed = 160.0f;
     b->radius = balloonradius;
     b->active = true;
     b->isgold = (GetRandomValue(1, 10) <= 2);
     b->textureindex = GetRandomValue(0, NORMAL_BALLOONS_NUM - 1);
 }
-/////////////////////////////////////////////////////////////
+
 // main func
 int main(void)
 {
@@ -75,15 +67,13 @@ int main(void)
     // bow and arrow textures setup
     Texture2D bowimage = LoadTexture("assets/sprites/bow.png");
     Texture2D arrowimage = LoadTexture("assets/sprites/arrow.png");
-    /////////////////////////////////////////////////////////////////////
+
     // spawn hole setup for balloons
     Vector2 spawnholes[MAX_SPAWNHOLES];
     for (int i = 0; i < MAX_SPAWNHOLES; i++)
     {
         spawnholes[i] = (Vector2){1000.0f + i * 130.0f, HEIGHT + 50.0f};
     }
-    float spawntimer = 0.0f;
-    const float spawninterval = 1.8f;
 
     // loading balloons and initializing
     Texture2D normalballoons[NORMAL_BALLOONS_NUM];
@@ -97,26 +87,19 @@ int main(void)
     {
         balloons[i].active = false;
     }
-
-    // Calculate radius
     const float balloonradius = (float)normalballoons[0].width * 0.4f;
 
-    // arrow/projectile settings
-    Arrow arrows[MAX_ARROWS] = {0};
-    int arrowsleft = 10;
-    const float gravity = 980.0f;
+    // arrow
+    Arrow arrow1 = {0};
 
-    // Pull-back mechanism variables
-    float pulldistance = 0.0f;
-    const float maxpulldistance = 120.0f;
-    const float pullspeed = 120.0f;
-    const float minarrowspeed = 400.0f;
-    const float maxarrowspeed = 2200.0f;
-
-    // game variables setting
+    // game variables
     int score = 0;
     int highscore = 0;
     bool gameover = false;
+    int arrowsleft = 10;
+    const float gravity = 980.0f;
+    float spawntimer = 0.0f;
+    const float spawninterval = 1.8f;
 
     // Read Highscore from file before starting game
     FILE *highscorefile = fopen("highscore.txt", "r");
@@ -134,43 +117,19 @@ int main(void)
         // streaming audio
         UpdateMusicStream(gamebgmusic);
 
-        // RESTART after gameover
-        if (gameover == true && IsKeyPressed(KEY_R) == true)
-        {
-            gameover = false;
-            arrowsleft = 10;
-            score = 0;
-            spawntimer = 0.0f;
-
-            for (int i = 0; i < MAX_ARROWS; i++)
-            {
-                arrows[i].active = false;
-            }
-
-            for (int i = 0; i < MAX_BALLOONS; i++)
-            {
-                balloons[i].active = false;
-            }
-            StopSound(gameoversound);
-            PlayMusicStream(gamebgmusic);
-        }
-
         Vector2 mouseposition = GetMousePosition();
         Vector2 arrowpivot = {260.0f, 630.0f};
 
-        // Checking if any arrow is in flight
-        bool hasarrowsinflight = false;
-        for (int i = 0; i < MAX_ARROWS; i++)
-        {
-            if (arrows[i].active == true)
-            {
-                hasarrowsinflight = true;
-                break;
-            }
-        }
         // initialising arrow settings
         Vector2 aimdirection = {1.0f, 0.0f};
         float aimangle = 0.0f;
+
+        // Pull-back mechanism variables
+        float pulldistance = 0.0f;
+        const float maxpulldistance = 120.0f;
+        const float pullspeed = 120.0f;
+        const float minarrowspeed = 400.0f;
+        const float maxarrowspeed = 2200.0f;
 
         // aiming, pulling back and shooting arrow
         if (arrowsleft > 0 && gameover == false)
@@ -181,7 +140,7 @@ int main(void)
             aimdirection = (Vector2){cosf(aimangle), sinf(aimangle)};
 
             // Pulling back of string
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && hasarrowsinflight == false)
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && arrow1.active == false)
             {
                 pulldistance += pullspeed * dt;
                 if (pulldistance > maxpulldistance)
@@ -191,26 +150,30 @@ int main(void)
             }
 
             // arrow released
-            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == true && hasarrowsinflight == false)
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == true && arrow1.active == false)
             {
-                for (int i = 0; i < MAX_ARROWS; i++)
-                {
-                    if (arrows[i].active == false)
-                    {
-                        float pullratio = pulldistance / maxpulldistance;
-                        float arrowspeed = minarrowspeed + pullratio * (maxarrowspeed - minarrowspeed);
+                float pullratio = pulldistance / maxpulldistance;
+                float arrowspeed = minarrowspeed + pullratio * (maxarrowspeed - minarrowspeed);
 
-                        arrows[i].position = arrowpivot;
-                        arrows[i].velocity = Vector2Scale(aimdirection, arrowspeed);
-                        arrows[i].radius = 18.0f;
-                        arrows[i].active = true;
-                        arrowsleft--;
-                        PlaySound(shootsound);
-                        hasarrowsinflight = true;
-                        break;
-                    }
-                }
+                arrow1.position = arrowpivot;
+                arrow1.velocity = Vector2Scale(aimdirection, arrowspeed);
+                arrow1.radius = 18.0f;
+                arrow1.active = true;
+                arrowsleft--;
+                PlaySound(shootsound);
                 pulldistance = 0.0f;
+            }
+        }
+
+        // projectile formula for single arrow
+        if (arrow1.active == true)
+        {
+            arrow1.velocity.y += gravity * dt;
+            arrow1.position = Vector2Add(arrow1.position, Vector2Scale(arrow1.velocity, dt));
+
+            if (arrow1.position.x > WIDTH + 50 || arrow1.position.y > HEIGHT + 50)
+            {
+                arrow1.active = false;
             }
         }
 
@@ -243,45 +206,26 @@ int main(void)
             {
                 balloons[i].active = false;
             }
-            for (int j = 0; j < MAX_ARROWS; j++)
-            {
-                if (arrows[j].active == true && CheckCollisionCircles(arrows[j].position, arrows[j].radius, balloons[i].position, balloons[i].radius) == true)
-                {
-                    arrows[j].active = false;
-                    balloons[i].active = false;
-                    if (balloons[i].isgold == true)
-                    {
-                        arrowsleft += 2;
-                        score += 20;
-                    }
-                    else
-                    {
-                        score += 20;
-                    }
-                    PlaySound(popsound);
-                }
-            }
-        }
 
-        // projectile formula
-        hasarrowsinflight = false;
-        for (int i = 0; i < MAX_ARROWS; i++)
-        {
-            if (arrows[i].active == true)
+            if (arrow1.active == true && CheckCollisionCircles(arrow1.position, arrow1.radius, balloons[i].position, balloons[i].radius) == true)
             {
-                hasarrowsinflight = true;
-                arrows[i].velocity.y += gravity * dt;
-                arrows[i].position = Vector2Add(arrows[i].position, Vector2Scale(arrows[i].velocity, dt));
-
-                if (arrows[i].position.x > WIDTH + 50 || arrows[i].position.y > HEIGHT + 50)
+                arrow1.active = false;
+                balloons[i].active = false;
+                if (balloons[i].isgold == true)
                 {
-                    arrows[i].active = false;
+                    arrowsleft += 2;
+                    score += 20;
                 }
+                else
+                {
+                    score += 20;
+                }
+                PlaySound(popsound);
             }
         }
 
         // checking game over state
-        if (arrowsleft <= 0 && hasarrowsinflight == false && gameover == false)
+        if (arrowsleft <= 0 && arrow1.active == false && gameover == false)
         {
             gameover = true;
             StopMusicStream(gamebgmusic);
@@ -297,6 +241,24 @@ int main(void)
                     fclose(fw);
                 }
             }
+        }
+
+        // RESTART after gameover
+        if (gameover == true && IsKeyPressed(KEY_R) == true)
+        {
+            gameover = false;
+            arrowsleft = 10;
+            score = 0;
+            spawntimer = 0.0f;
+
+            arrow1.active = false;
+
+            for (int i = 0; i < MAX_BALLOONS; i++)
+            {
+                balloons[i].active = false;
+            }
+            StopSound(gameoversound);
+            PlayMusicStream(gamebgmusic);
         }
 
         // drawing portion
@@ -333,24 +295,22 @@ int main(void)
         DrawLineEx(bowstringtop, pullpoint, 3.5f, LIGHTGRAY);
 
         // drawing arrow at bow
-        if (arrowsleft > 0 && gameover == false && hasarrowsinflight == false)
+        if (arrowsleft > 0 && gameover == false && arrow1.active == false)
         {
             Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
             Rectangle arrowdest = {pullpoint.x, pullpoint.y, 110.0f, 45.0f};
             Vector2 arroworigin = {110.0f / 2.0f, 45.0f / 2.0f};
             DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, aimangle * RAD2DEG, WHITE);
         }
+
         // drawing arrow in air
-        for (int i = 0; i < MAX_ARROWS; i++)
+        if (arrow1.active == true)
         {
-            if (arrows[i].active == true)
-            {
-                float arrowangle = atan2f(arrows[i].velocity.y, arrows[i].velocity.x);
-                Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
-                Rectangle arrowdest = {arrows[i].position.x, arrows[i].position.y, 110.0f, 45.0f};
-                Vector2 arroworigin = {110.0f / 2.0f, 45.0f / 2.0f};
-                DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, arrowangle * RAD2DEG, WHITE);
-            }
+            float arrowangle = atan2f(arrow1.velocity.y, arrow1.velocity.x);
+            Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
+            Rectangle arrowdest = {arrow1.position.x, arrow1.position.y, 110.0f, 45.0f};
+            Vector2 arroworigin = {110.0f / 2.0f, 45.0f / 2.0f};
+            DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, arrowangle * RAD2DEG, WHITE);
         }
 
         // drawing the balloons
@@ -401,7 +361,6 @@ int main(void)
         EndDrawing();
     }
 
-    // unloading all textures/drawings
     UnloadTexture(background);
     for (int i = 0; i < NORMAL_BALLOONS_NUM; i++)
     {
@@ -413,12 +372,10 @@ int main(void)
     UnloadTexture(bowimage);
     UnloadTexture(arrowimage);
     UnloadFont(customfont);
-    // unloading all audio
     UnloadSound(shootsound);
     UnloadSound(popsound);
     UnloadMusicStream(gamebgmusic);
     UnloadSound(gameoversound);
-
     CloseAudioDevice();
     CloseWindow();
     return 0;
