@@ -6,7 +6,7 @@
 #define WIDTH 1600
 #define HEIGHT 800
 #define MAX_BALLOONS 10
-#define MAX_SPAWNHOLES 5
+#define SPAWNHOLES 5
 #define NORMAL_BALLOONS_NUM 4
 
 typedef struct
@@ -27,50 +27,28 @@ typedef struct
     bool active;
 } Arrow;
 
-void SpawnBalloon(Balloon *b, float balloonradius, Vector2 spawnholes[])
-{
-    int holeindex = GetRandomValue(0, MAX_SPAWNHOLES - 1);
-    b->position = spawnholes[holeindex];
-    b->speed = 160.0f;
-    b->radius = balloonradius;
-    b->active = true;
-    b->isgold = (GetRandomValue(1, 10) <= 2);
-    b->textureindex = GetRandomValue(0, NORMAL_BALLOONS_NUM - 1);
-}
-
-// main func
 int main(void)
 {
-    // window and audio init
     InitWindow(WIDTH, HEIGHT, "HIT 'EM ALL");
     InitAudioDevice();
     SetTargetFPS(60);
 
-    // all music loading and playing and setting volume
     Music gamebgmusic = LoadMusicStream("assets/audio/Carnival Music (Game Window).mp3");
     PlayMusicStream(gamebgmusic);
-
     Sound shootsound = LoadSound("assets/audio/Gun shooting.ogg");
     Sound popsound = LoadSound("assets/audio/Balloon Pop.mp3");
     Sound gameoversound = LoadSound("assets/audio/game over.mp3");
 
-    // bg loading
     Texture2D background = LoadTexture("assets/sprites/Gamescreen.png");
     Texture2D gameovertexture = LoadTexture("assets/sprites/gameover.png");
-
-    // loading custom font
-    Font customfont = LoadFont("assets/fonts/Carnival Font.ttf");
-
-    // boy character texture setup
     Texture2D boyimg = LoadTexture("assets/sprites/boy.png");
-
-    // bow and arrow textures setup
     Texture2D bowimage = LoadTexture("assets/sprites/bow.png");
     Texture2D arrowimage = LoadTexture("assets/sprites/arrow.png");
 
+    Font customfont = LoadFont("assets/fonts/Carnival Font.ttf");
     // spawn hole setup for balloons
-    Vector2 spawnholes[MAX_SPAWNHOLES];
-    for (int i = 0; i < MAX_SPAWNHOLES; i++)
+    Vector2 spawnholes[SPAWNHOLES];
+    for (int i = 0; i < SPAWNHOLES; i++)
     {
         spawnholes[i] = (Vector2){1000.0f + i * 130.0f, HEIGHT + 50.0f};
     }
@@ -100,8 +78,9 @@ int main(void)
     const float gravity = 980.0f;
     float spawntimer = 0.0f;
     const float spawninterval = 1.8f;
+    float pulldistance = 0.0f;
 
-    // Read Highscore from file before starting game
+    // highest score
     FILE *highscorefile = fopen("highscore.txt", "r");
     if (highscorefile != NULL)
     {
@@ -113,8 +92,6 @@ int main(void)
     while (WindowShouldClose() == false)
     {
         const float dt = GetFrameTime();
-
-        // streaming audio
         UpdateMusicStream(gamebgmusic);
 
         Vector2 mouseposition = GetMousePosition();
@@ -123,14 +100,11 @@ int main(void)
         // initialising arrow settings
         Vector2 aimdirection = {1.0f, 0.0f};
         float aimangle = 0.0f;
-
         // Pull-back mechanism variables
-        float pulldistance = 0.0f;
         const float maxpulldistance = 120.0f;
         const float pullspeed = 120.0f;
         const float minarrowspeed = 400.0f;
         const float maxarrowspeed = 2200.0f;
-
         // aiming, pulling back and shooting arrow
         if (arrowsleft > 0 && gameover == false)
         {
@@ -138,7 +112,6 @@ int main(void)
             float mousepointerangle = atan2f(mouseposition.y - arrowpivot.y, mouseposition.x - arrowpivot.x);
             aimangle = fmaxf(-PI / 4.0f, fminf(PI / 4.0f, mousepointerangle));
             aimdirection = (Vector2){cosf(aimangle), sinf(aimangle)};
-
             // Pulling back of string
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && arrow1.active == false)
             {
@@ -148,7 +121,6 @@ int main(void)
                     pulldistance = maxpulldistance;
                 }
             }
-
             // arrow released
             if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == true && arrow1.active == false)
             {
@@ -164,7 +136,6 @@ int main(void)
                 pulldistance = 0.0f;
             }
         }
-
         // projectile formula for single arrow
         if (arrow1.active == true)
         {
@@ -176,7 +147,6 @@ int main(void)
                 arrow1.active = false;
             }
         }
-
         // balloon spawning
         if (gameover == false)
         {
@@ -188,14 +158,19 @@ int main(void)
                 {
                     if (balloons[i].active == false)
                     {
-                        SpawnBalloon(&balloons[i], balloonradius, spawnholes);
+                        int holeindex = GetRandomValue(0, SPAWNHOLES - 1);
+                        balloons[i].position = spawnholes[holeindex];
+                        balloons[i].speed = 160.0f;
+                        balloons[i].radius = balloonradius;
+                        balloons[i].active = true;
+                        balloons[i].isgold = (GetRandomValue(1, 10) <= 2);
+                        balloons[i].textureindex = GetRandomValue(0, NORMAL_BALLOONS_NUM - 1);
                         break;
                     }
                 }
             }
         }
-
-        // floating of balloon vertically upwards & collision of arrow with balloon to pop it (with sound)
+        // floating of balloon & collision of arrow with balloon
         for (int i = 0; i < MAX_BALLOONS; i++)
         {
             if (balloons[i].active == false)
@@ -223,8 +198,7 @@ int main(void)
                 PlaySound(popsound);
             }
         }
-
-        // checking game over state
+        // checking game over
         if (arrowsleft <= 0 && arrow1.active == false && gameover == false)
         {
             gameover = true;
@@ -242,8 +216,7 @@ int main(void)
                 }
             }
         }
-
-        // RESTART after gameover
+        // RESTART
         if (gameover == true && IsKeyPressed(KEY_R) == true)
         {
             gameover = false;
@@ -326,7 +299,6 @@ int main(void)
         // score and ammo display
         DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){32, 27}, 42, 2, BLACK);
         DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){30, 25}, 42, 2, WHITE);
-
         DrawTextEx(customfont, TextFormat("ARROWS: %d", arrowsleft), (Vector2){32, 77}, 42, 2, BLACK);
         DrawTextEx(customfont, TextFormat("ARROWS: %d", arrowsleft), (Vector2){30, 75}, 42, 2, GOLD);
 
@@ -341,26 +313,21 @@ int main(void)
             DrawTexturePro(gameovertexture, gameoversource, gameoverdest, gameoverorigin, 0.0f, WHITE);
 
             // Settings for Game Over text
-            float fontsize = 48.0f;
-
-            // Restart Text
             const char *restarttext = "PRESS R TO RESTART";
-            DrawTextEx(customfont, restarttext, (Vector2){650.0f, 500.0f}, fontsize, 2, BLACK);
-            DrawTextEx(customfont, restarttext, (Vector2){648.0f, 498.0f}, fontsize, 2, RAYWHITE);
+            DrawTextEx(customfont, restarttext, (Vector2){650.0f, 500.0f}, 48.0f, 2, BLACK);
+            DrawTextEx(customfont, restarttext, (Vector2){648.0f, 498.0f}, 48.0f, 2, RAYWHITE);
 
-            // Final score + high score display
             const char *scoretext = TextFormat("YOUR SCORE: %d", score);
-            DrawTextEx(customfont, scoretext, (Vector2){650.0f, 600.0f}, fontsize, 2, BLACK);
-            DrawTextEx(customfont, scoretext, (Vector2){648.0f, 598.0f}, fontsize, 2, RAYWHITE);
+            DrawTextEx(customfont, scoretext, (Vector2){650.0f, 600.0f}, 48.0f, 2, BLACK);
+            DrawTextEx(customfont, scoretext, (Vector2){648.0f, 598.0f}, 48.0f, 2, RAYWHITE);
 
             const char *highscoretext = TextFormat("HIGHEST SCORE: %d", highscore);
-            DrawTextEx(customfont, highscoretext, (Vector2){650.0f, 650.0f}, fontsize, 2, BLACK);
-            DrawTextEx(customfont, highscoretext, (Vector2){648.0f, 648.0f}, fontsize, 2, RAYWHITE);
+            DrawTextEx(customfont, highscoretext, (Vector2){650.0f, 650.0f}, 48.0f, 2, BLACK);
+            DrawTextEx(customfont, highscoretext, (Vector2){648.0f, 648.0f}, 48.0f, 2, RAYWHITE);
         }
 
         EndDrawing();
     }
-
     UnloadTexture(background);
     for (int i = 0; i < NORMAL_BALLOONS_NUM; i++)
     {

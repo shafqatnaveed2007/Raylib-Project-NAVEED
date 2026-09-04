@@ -12,7 +12,7 @@
 #define BOY_FRAMES 20
 #define MAX_BALLOONS 10
 #define MAX_ARROWS 10
-#define MAX_SPAWNHOLES 5
+#define SPAWNHOLES 5
 
 // balloon structure
 typedef struct
@@ -35,7 +35,7 @@ typedef struct
 // balloon spawning function
 void SpawnBalloon(Balloon *b, float balloonradius, Vector2 spawnholes[])
 {
-    int holeindex = GetRandomValue(0, MAX_SPAWNHOLES - 1);
+    int holeindex = GetRandomValue(0, SPAWNHOLES - 1);
     b->position = spawnholes[holeindex];
     b->speed = (float)160;
     b->radius = balloonradius;
@@ -103,8 +103,8 @@ int main(void)
     float boyposY = HEIGHT - boyheight + 125.0f;
 
     // spawn hole setup for balloons
-    Vector2 spawnholes[MAX_SPAWNHOLES];
-    for (int i = 0; i < MAX_SPAWNHOLES; i++)
+    Vector2 spawnholes[SPAWNHOLES];
+    for (int i = 0; i < SPAWNHOLES; i++)
     {
         spawnholes[i] = (Vector2){850.0f + i * 130.0f, HEIGHT + 50.0f};
     }
