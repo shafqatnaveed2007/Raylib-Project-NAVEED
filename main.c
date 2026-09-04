@@ -41,7 +41,6 @@ int main(void)
 
     Texture2D background = LoadTexture("assets/sprites/Gamescreen.png");
     Texture2D gameovertexture = LoadTexture("assets/sprites/gameover.png");
-    Texture2D boyimg = LoadTexture("assets/sprites/boy.png");
     Texture2D bowimage = LoadTexture("assets/sprites/bow.png");
     Texture2D arrowimage = LoadTexture("assets/sprites/arrow.png");
 
@@ -136,7 +135,7 @@ int main(void)
                 pulldistance = 0.0f;
             }
         }
-        // projectile formula for single arrow
+        // projectile formula
         if (arrow1.active == true)
         {
             arrow1.velocity.y += gravity * dt;
@@ -243,15 +242,6 @@ int main(void)
         Rectangle bgsource = {0.0f, 0.0f, (float)background.width, (float)background.height};
         Rectangle bgdest = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT};
         DrawTexturePro(background, bgsource, bgdest, origin, 0.0f, WHITE);
-
-        // drawing boy
-        float boywidth = 415.0f;
-        float boyheight = 415.0f;
-        Rectangle boysource = {0.0f, 0.0f, (float)boyimg.width, (float)boyimg.height};
-        Rectangle boydest = {arrowpivot.x - 50.0f, arrowpivot.y + 30.0f, boywidth, boyheight};
-        Vector2 boyorigin = {boywidth / 2.0, boyheight / 2.0};
-        DrawTexturePro(boyimg, boysource, boydest, boyorigin, 0.0f, WHITE);
-
         // drawing bow
         float bowwidth = 240.0f;
         float bowheight = 240.0f;
@@ -335,7 +325,6 @@ int main(void)
     }
     UnloadTexture(specialballoon);
     UnloadTexture(gameovertexture);
-    UnloadTexture(boyimg);
     UnloadTexture(bowimage);
     UnloadTexture(arrowimage);
     UnloadFont(customfont);
