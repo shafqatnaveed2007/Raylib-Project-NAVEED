@@ -106,6 +106,13 @@ int main(void)
     int arrowsleft = 10;
     const float gravity = 980.0f;
 
+    // Pull-back mechanism variables
+    float pulldistance = 0.0f;
+    const float maxpulldistance = 120.0f;
+    const float pullspeed = 120.0f;
+    const float minarrowspeed = 400.0f;
+    const float maxarrowspeed = 2200.0f;
+
     // game variables setting
     int score = 0;
     int highscore = 0;
@@ -151,7 +158,7 @@ int main(void)
         Vector2 mouseposition = GetMousePosition();
         Vector2 arrowpivot = {260.0f, 630.0f};
 
-        // Checking if any arrow is currently in flight
+        // Checking if any arrow is in flight
         bool hasarrowsinflight = false;
         for (int i = 0; i < MAX_ARROWS; i++)
         {
@@ -162,25 +169,37 @@ int main(void)
             }
         }
         // initialising arrow settings
-        float arrowspeed = 1500.0f;
         Vector2 aimdirection = {1.0f, 0.0f};
         float aimangle = 0.0f;
 
-        // aiming and shooting arrow
+        // aiming, pulling back and shooting arrow
         if (arrowsleft > 0 && gameover == false)
         {
-            // Continuously update aim angle according to mouse cursor
+            // Updating aim angle with mouse position
             float mousepointerangle = atan2f(mouseposition.y - arrowpivot.y, mouseposition.x - arrowpivot.x);
             aimangle = fmaxf(-PI / 4.0f, fminf(PI / 4.0f, mousepointerangle));
             aimdirection = (Vector2){cosf(aimangle), sinf(aimangle)};
 
-            // releasing arrow
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) == true && hasarrowsinflight == false)
+            // Pulling back of string
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && hasarrowsinflight == false)
+            {
+                pulldistance += pullspeed * dt;
+                if (pulldistance > maxpulldistance)
+                {
+                    pulldistance = maxpulldistance;
+                }
+            }
+
+            // arrow released
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) == true && hasarrowsinflight == false)
             {
                 for (int i = 0; i < MAX_ARROWS; i++)
                 {
                     if (arrows[i].active == false)
                     {
+                        float pullratio = pulldistance / maxpulldistance;
+                        float arrowspeed = minarrowspeed + pullratio * (maxarrowspeed - minarrowspeed);
+
                         arrows[i].position = arrowpivot;
                         arrows[i].velocity = Vector2Scale(aimdirection, arrowspeed);
                         arrows[i].radius = 18.0f;
@@ -191,6 +210,7 @@ int main(void)
                         break;
                     }
                 }
+                pulldistance = 0.0f;
             }
         }
 
@@ -309,15 +329,18 @@ int main(void)
         Vector2 bowstringbottom = Vector2Add(arrowpivot, Vector2Rotate((Vector2){0.0f, -95.0f}, aimangle));
         Vector2 bowstringtop = Vector2Add(arrowpivot, Vector2Rotate((Vector2){0.0f, 95.0f}, aimangle));
 
+        // Calculate string pull position based on charged time distance
+        Vector2 pullpoint = Vector2Subtract(arrowpivot, Vector2Scale(aimdirection, pulldistance));
+
         // drawing bow string
-        DrawLineEx(bowstringbottom, arrowpivot, 3.5f, LIGHTGRAY);
-        DrawLineEx(bowstringtop, arrowpivot, 3.5f, LIGHTGRAY);
+        DrawLineEx(bowstringbottom, pullpoint, 3.5f, LIGHTGRAY);
+        DrawLineEx(bowstringtop, pullpoint, 3.5f, LIGHTGRAY);
 
         // drawing arrow at bow
         if (arrowsleft > 0 && gameover == false && hasarrowsinflight == false)
         {
             Rectangle arrowsource = {0.0f, 0.0f, (float)arrowimage.width, (float)arrowimage.height};
-            Rectangle arrowdest = {arrowpivot.x, arrowpivot.y, 110.0f, 45.0f};
+            Rectangle arrowdest = {pullpoint.x, pullpoint.y, 110.0f, 45.0f};
             Vector2 arroworigin = {110.0f / 2.0f, 45.0f / 2.0f};
             DrawTexturePro(arrowimage, arrowsource, arrowdest, arroworigin, aimangle * RAD2DEG, WHITE);
         }
@@ -364,7 +387,6 @@ int main(void)
 
             // Settings for Game Over text
             float fontsize = 48.0f;
-            float linespacing = 52.0f;
 
             // Restart Text
             const char *restarttext = "PRESS R TO RESTART";
