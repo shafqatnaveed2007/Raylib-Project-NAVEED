@@ -1,0 +1,19 @@
+Dear Students,
+
+Please be advised that the 50% project evaluation for CSE 102 will be conducted during your regular lab session in Week 11. This evaluation will be graded.
+The evaluation criteria and expectations are outlined below.
+
+1. Core Game Mechanics and Features
+The evaluation will primarily assess the fundamental functionality of your project. For instance, in the case of a project such as Angry Birds,  the core mechanics would include launching from a slingshot, collision detection and hitting of targets, and the triggering of a "Game Over" state once all birds have been used.
+
+2. Interactive Controls and Tracking
+The submitted deliverable must include the following:
+    a. Functional keyboard and/or mouse controls
+    b. A scoring or tracking system
+
+3. Visuals and Graphics
+Complete visual animations, advanced graphics, and refined user interface design are not required at this stage of development. Students who have already implemented such features are welcome to present them during the evaluation.
+
+4. Team Contribution and Code Understanding
+    a. All team members are required to demonstrate an equal contribution to the project.
+    b. Each team member is expected to possess a thorough understanding of the entire codebase and should be prepare to explain their individual implementation during the evaluation.

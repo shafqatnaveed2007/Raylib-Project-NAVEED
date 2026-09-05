@@ -1,0 +1,7 @@
+Here is a platform independent template for Raylib.
+
+1. Download the zip and extract it. You need the entire raylib/ directory (all the raylib-6.0_<platform> subfolders) alongside your .vscode/ folder.
+2. Open the folder itself in VS Code — File > Open Folder... and select the project's top-level folder (or double-click raylib_template.code-workspace). Do not open a single .c file on its own; VS Code needs the folder open so it can find .vscode/tasks.json and .vscode/launch.json.
+3. If prompted "This workspace has extension recommendations," click Install (this gets you the C/C++ extension).
+4. Build: press Ctrl+Shift+B (Windows/Linux) or Cmd+Shift+B (Mac) → Run Build Task. This runs the "Build Raylib App" task, which is pre-wired to the correct raylib folder and libraries for your OS. You should see Build finished successfully (or similar) in the terminal panel with no errors.
+5. Run it: open the Run and Debug panel (Ctrl+Shift+D / Cmd+Shift+D) and press the green ▶ (or F5). This builds first, then launches with the debugger attached — breakpoints work here.
