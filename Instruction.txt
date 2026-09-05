@@ -5,3 +5,7 @@ Here is a platform independent template for Raylib.
 3. If prompted "This workspace has extension recommendations," click Install (this gets you the C/C++ extension).
 4. Build: press Ctrl+Shift+B (Windows/Linux) or Cmd+Shift+B (Mac) → Run Build Task. This runs the "Build Raylib App" task, which is pre-wired to the correct raylib folder and libraries for your OS. You should see Build finished successfully (or similar) in the terminal panel with no errors.
 5. Run it: open the Run and Debug panel (Ctrl+Shift+D / Cmd+Shift+D) and press the green ▶ (or F5). This builds first, then launches with the debugger attached — breakpoints work here.
+
+
+Youtube link (for reference):
+https://youtu.be/_Vd5pryKkXw?si=mn_Q5rZh1pfJQk98
