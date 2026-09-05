@@ -34,7 +34,7 @@ int main(void)
     InitWindow(WIDTH, HEIGHT, "HIT 'EM ALL");
     InitAudioDevice();
     SetTargetFPS(60);
-
+    // loading all audio, textures, fonts
     Music bgmusic = LoadMusicStream("assets/audio/Game Window.mp3");
     Sound shootsound = LoadSound("assets/audio/Gun Shooting.ogg");
     Sound popsound = LoadSound("assets/audio/Balloon Pop.mp3");
@@ -56,6 +56,7 @@ int main(void)
 
     Font customfont = LoadFont("assets/fonts/Carnival Font.ttf");
 
+    // init spawnpoints, arrow, balloons
     Vector2 spawnpoints[SPAWNPOINTS];
     for (int i = 0; i < SPAWNPOINTS; i++)
     {
@@ -70,6 +71,7 @@ int main(void)
         balloons[i].active = false;
     }
 
+    // init game variables
     int score = 0;
     int highestscore = 0;
     bool gameover = false;
@@ -80,6 +82,7 @@ int main(void)
     float pulldistance = 0.0f;
     float launchspeed = 0.0f;
 
+    // reading highest score from file
     FILE *highestscorefile = fopen("highestscore.txt", "r");
     if (highestscorefile != NULL)
     {
@@ -92,19 +95,17 @@ int main(void)
         float dt = GetFrameTime();
         UpdateMusicStream(bgmusic);
 
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-
+        // bow and arrow settings
         Vector2 mouseposition = GetMousePosition();
         Vector2 arrowpivot = {260.0f, 630.0f};
         float aimangle = 0.0f;
         Vector2 aimdirection = {1.0f, 0.0f};
-
         float maxpulldistance = 120.0f;
         float minarrowspeed = 500.0f;
         float maxarrowspeed = 2500.0f;
         float pullspeed = 100.0f;
 
+        // aiming, pulling back and shooting arrow
         if (arrowsleft > 0 && gameover == false)
         {
             float mousepointerangle = atan2f(mouseposition.y - arrowpivot.y, mouseposition.x - arrowpivot.x);
@@ -146,6 +147,7 @@ int main(void)
             }
         }
 
+        // projectile formula
         if (arrow.active == true)
         {
             arrow.velocity.y += dt * gravity;
@@ -156,6 +158,7 @@ int main(void)
             }
         }
 
+        // spawning balloons
         float balloonradius = (float)(normalballoons[0].width) * 0.5f;
         if (gameover == false)
         {
@@ -179,6 +182,7 @@ int main(void)
             }
         }
 
+        // collision physics
         for (int i = 0; i < MAXBALLOONS; i++)
         {
             if (balloons[i].active == false)
@@ -206,6 +210,7 @@ int main(void)
             }
         }
 
+        // gameover and restart
         if (arrowsleft == 0 && arrow.active == false && gameover == false)
         {
             gameover = true;
@@ -241,6 +246,9 @@ int main(void)
             PlayMusicStream(bgmusic);
         }
 
+        // drawing phase
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
         Rectangle bgsource = {0.0f, 0.0f, (float)background.width, (float)background.height};
         Rectangle bgdest = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT};
         DrawTexturePro(background, bgsource, bgdest, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
@@ -292,6 +300,7 @@ int main(void)
             }
         }
 
+        // drawing texts
         DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){32, 23}, 42, 2, BLACK);
         DrawTextEx(customfont, TextFormat("SCORE: %d", score), (Vector2){30, 25}, 42, 2, WHITE);
         DrawTextEx(customfont, TextFormat("ARROWS: %d", arrowsleft), (Vector2){32, 73}, 42, 2, BLACK);
@@ -301,6 +310,7 @@ int main(void)
 
         DrawTextEx(customfont, TextFormat("LAUNCH SPEED: %.2f", launchspeed), (Vector2){30, 723}, 42, 2, BLACK);
 
+        // gameover screen
         if (gameover == true)
         {
             float gameoverwidth = (float)gameovertexture.width * 1.8f;
